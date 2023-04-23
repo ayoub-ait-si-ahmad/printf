@@ -1,129 +1,45 @@
-#include <stdarg.h>
-#include <stdio.h>
 #include "main.h"
-#include <stdlib.h>
-#include <unistd.h>
 /**
- * _printf - prints formatted text to stdout
- * @format: format string containing format specifiers
- *
- * Return: number of characters printed
+ * _printf - is a function that selects the correct function to print.
+ * @format: identifier to look for.
+ * Return: the length of the string.
  */
-int _printf(const char *format, ...)
+int _printf(const char * const format, ...)
 {
+	convert_match m[] = {
+		{"%s", printf_string}, {"%c", printf_char},
+		{"%%", printf_37},
+		{"%i", printf_int}, {"%d", printf_dec}, {"%r", printf_srev},
+		{"%R", printf_rot13}, {"%b", printf_bin}, {"%u", printf_unsigned},
+		{"%o", printf_oct}, {"%x", printf_hex}, {"%X", printf_HEX},
+		{"%S", printf_exclusive_string}, {"%p", printf_pointer}
+	};
+
 	va_list args;
-	int i = 0, j = 0, num_chars = 0, buffer_size = 1024, count;
-	char *buffer, *str_arg, int_str[20]; /* max length of a 64-bit signed int is 19 characters + sign */
+	int i = 0, j, len = 0;
 
 	va_start(args, format);
-
-	buffer = malloc(sizeof(char) * buffer_size);
-	if (buffer == NULL)
+	if (format == NULL || (format[0] == '%' && format[1] == '\0'))
 		return (-1);
 
+Here:
 	while (format[i] != '\0')
 	{
-		if (format[i] != '%')
+		j = 13;
+		while (j >= 0)
 		{
-			if (num_chars == buffer_size)
+			if (m[j].id[0] == format[i] && m[j].id[1] == format[i + 1])
 			{
-				buffer_size += 1024;
-				buffer = realloc(buffer, sizeof(char) * buffer_size);
-				if (buffer == NULL)
-					return (-1);
+				len += m[j].f(args);
+				i = i + 2;
+				goto Here;
 			}
-			buffer[num_chars] = format[i];
-			num_chars++;
-			i++;
-			continue;
+			j--;
 		}
+		_putchar(format[i]);
+		len++;
 		i++;
-		switch (format[i])
-		{
-			case 'c':
-				if (num_chars == buffer_size)
-				{
-					buffer_size += 1024;
-					buffer = realloc(buffer, sizeof(char) * buffer_size);
-					if (buffer == NULL)
-						return (-1);
-				}
-				buffer[num_chars] = va_arg(args, int);
-				num_chars++;
-				i++;
-				break;
-			case 's':
-				str_arg = va_arg(args, char *);
-				j = 0;
-				while (str_arg[j] != '\0')
-				{
-					if (num_chars == buffer_size)
-					{
-						buffer_size += 1024;
-						buffer = realloc(buffer, sizeof(char) * buffer_size);
-						if (buffer == NULL)
-							return (-1);
-					}
-					buffer[num_chars] = str_arg[j];
-					num_chars++;
-					j++;
-				}
-				i++;
-				break;
-			case 'i':
-			case 'd':
-				count = snprintf(int_str, 20, "%d", va_arg(args, int));
-				if (count < 0)
-					return (-1);
-				j = 0;
-				while (int_str[j] != '\0')
-				{
-					if (num_chars == buffer_size)
-					{
-						buffer_size += 1024;
-						buffer = realloc(buffer, sizeof(char) * buffer_size);
-						if (buffer == NULL)
-							return (-1);
-					}
-					buffer[num_chars] = int_str[j];
-					num_chars++;
-					j++;
-				}
-				i++;
-				break;
-			case '%':
-				if (num_chars == buffer_size)
-				{
-					buffer_size += 1024;
-					buffer = realloc(buffer, sizeof(char) * buffer_size);
-					if (buffer == NULL)
-						return (-1);
-				}
-				buffer[num_chars] = '%';
-				num_chars++;
-				i++;
-				break;
-			default:
-				return (-1);
-		}
 	}
-
-	if (num_chars == buffer_size)
-	{
-		buffer_size += 1;
-		buffer = realloc(buffer, sizeof(char) * buffer_size);
-		if (buffer == NULL)
-			return (-1);
-	}
-	buffer[num_chars] = '\0';
-
 	va_end(args);
-
-	count = write(1, buffer, num_chars);
-	free(buffer);
-
-	if (count < 0)
-		return (-1);
-
-	return (count);
+	return (len);
 }
